@@ -1,0 +1,77 @@
+<h3>The quick way</h3>
+<p>Record your instrument in any recorder (see below), cut it into single notes, then click <b>From audio…</b> under <i>Design → Instrument</i>
+(or drop the files on the page). Name the files by their key (<code>C4</code>, <code>F#3</code>, <code>Piano.mf.Eb3</code>, <code>A0_v40</code>) and Resonance places them on
+a piano bar; files without a name are placed by their pitch, and you can click any key to choose its file by hand. It measures every note in the browser, matches the loudness of each
+note to its recording and saves the instrument. The rest of this guide explains how to record well, and the command-line analyzers
+(<code>tools/analyze_instrument.py</code> for struck and plucked notes, <code>tools/analyze_sustained.py</code> for bowed and blown ones).</p>
+
+<h3>What you're making</h3>
+<p>An instrument file (<code>resonance-instrument/1</code>, JSON) that describes how a real instrument sounds, key
+by key: the level of every overtone and how fast each one dies away, at one or more playing strengths. Resonance plays
+it with the same physical model as every built-in instrument. All sliders (hardness, unison, impedance, size, reverb…)
+work on top of your measurement.</p>
+
+<h3>1 · What you need</h3>
+<ul>
+  <li>The instrument, in tune, and a quiet room. Heavily reverberant rooms make the decays look longer.</li>
+  <li>One microphone (a small-diaphragm condenser is ideal) and any recorder or audio interface. WAV or FLAC, 44.1 kHz or more, 24-bit if you can.</li>
+  <li>Python 3 with <code>numpy scipy soundfile</code>: <code>pip install numpy scipy soundfile</code></li>
+  <li>The analyzer: <code>tools/analyze_instrument.py</code> (in the <code>tools/</code> folder of this app).</li>
+</ul>
+
+<h3>2 · Set up</h3>
+<ul>
+  <li><b>Mic position:</b> grand piano, lid open, 30–50 cm above the strings around the middle of the
+      case, pointing at the soundboard. Upright: 30 cm from the open top or in front of the removed lower panel.
+      Keep it in the same place for the whole session.</li>
+  <li><b>Level:</b> set the gain once on the loudest note you will record (a low note, fortissimo) so the peaks
+      reach about −6 dBFS. <b>Never change the gain afterwards.</b> The analyzer uses the level differences between
+      notes and velocities.</li>
+  <li>Switch off fridges and fans. Close the windows. Silence between notes matters.</li>
+</ul>
+
+<h3>3 · What to record</h3>
+<table>
+  <tr><th>Keys</th><td>At least every 3rd semitone (C, E♭, G♭, A in every octave). Every key is best.
+      Add the keys just below and above the bass/tenor string break, and the lowest and highest key.</td></tr>
+  <tr><th>Strengths</th><td>Three per key: soft (pp), medium (mf), loud (ff). One is enough to start. The engine
+      shapes other velocities from the difference between your layers.</td></tr>
+  <tr><th>Duration</th><td>Hold the key until the sound has completely died, or at least 15 s in the bass, 8 s mid,
+      3 s treble. <b>No sustain pedal.</b> Release the key only at the end.</td></tr>
+  <tr><th>One note per file</th><td>Name each file with the note and the strength:
+      <code>C4_mf.wav</code>, <code>Eb2_ff.flac</code>, <code>A0_v40.wav</code> (C4 = middle C; sharps as
+      <code>C#4</code>, or flats as <code>Db4</code>). Strengths: <code>ppp pp p mp mf f ff fff</code>, or <code>v&lt;velocity&gt;</code>
+      if you play from a MIDI-controlled instrument.</td></tr>
+</table>
+<p>Tip: record one long take per strength, then cut it into single notes with any editor (Audacity: <i>Analyze →
+Label Sounds</i>, then <i>Export Multiple</i>). Leave about 50 ms of silence before each attack.</p>
+
+<h3>4 · Analyse</h3>
+<pre>python3 tools/analyze_instrument.py --name "My grand" --author "Your name" \
+    --license "CC-BY-4.0" --source "Neumann KM184, 40 cm over the strings, living room" \
+    --out my_grand.json recordings/*.wav</pre>
+<p>For every recording it finds the attack, fits the pitch and the inharmonicity (<code>B</code>), measures up
+to 64 overtones and fits each one's two-stage decay (fast <i>direct</i> sound, then the slow <i>remanent</i> tail).
+It prints one line per file. Check that the reported <code>f0</code> matches the note and that the bass shows
+many partials.</p>
+
+<h3>5 · Import</h3>
+<p>Click <b>Import…</b> under <i>Design → Instrument</i> and choose the JSON file. It's stored in this browser
+(IndexedDB), appears under <i>Your instruments</i>, and can be exported or deleted from <b>Manage</b>.
+Nothing is uploaded anywhere.</p>
+
+<h3>6 · Check and refine</h3>
+<ul>
+  <li>Play a slow chromatic scale. Keys that jump in loudness or colour usually come from a bad take. Re-record that key.</li>
+  <li>If the tails sound too long, the room was adding reverb. Record closer, or lower <i>Board loading</i> slightly.</li>
+  <li>The analyzer doesn't measure the unison detune, so use <i>String spread</i> to taste. It
+      scales the typical detune for each register. To fit it per key from your recordings, run
+      <code>tools/calibrate_to_recordings.py</code> (it also corrects levels and decays; see the README).</li>
+  <li>The file format is documented in <code>docs/INSTRUMENT_FORMAT.md</code>. You can also write or edit
+      instruments by hand, for example to add <code>detune_cents</code> or <code>strings</code> per key.</li>
+</ul>
+
+<h3>Other instruments</h3>
+<p>Anything struck or plucked with a clear pitch works the same way: vibraphone, marimba, celesta, harp,
+guitar, electric-piano tines. Their overtones are not whole multiples of the fundamental. The analyzer measures
+the real ratios and the engine plays them as measured.</p>

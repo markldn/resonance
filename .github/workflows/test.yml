@@ -1,0 +1,22 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Python packages for the analyzer comparison
+        run: pip install numpy scipy soundfile
+      - name: Engine, pad, file formats, offline shell
+        run: npm test
+      - name: Variations (seeds x amounts)
+        run: npm run test:generators
+      - name: Browser test
+        run: |
+          npm i --no-save playwright
+          npx playwright install --with-deps chromium
+          npm run test:ui

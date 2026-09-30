@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resonance Piano</title>
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23141416'/%3E%3Cpath d='M8 7v18M13 7v18M18 7v18M23 7v18' stroke='%23c9a86a' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" class="logo"><rect width="32" height="32" rx="7"/><path d="M8 7v18M13 7v18M18 7v18M23 7v18"/></svg>
+      <div><div class="brand-name">Resonance</div><div class="brand-sub">physical-model piano</div></div>
+    </div>
+
+    <div class="inst-pick"><label for="model">Instrument</label><select id="model" title="Instrument: measured pianos, synths, your imports"></select></div>
+
+    <div class="top-actions">
+      <div class="menu-wrap">
+        <button class="btn ghost" id="fileMenuBtn">File ▾</button>
+        <div class="menu" id="fileMenu" hidden>
+          <button data-act="export">Export preset (.json)</button>
+          <button data-act="import">Import preset…</button>
+          <hr>
+          <button data-act="midiExport">Save played MIDI (.mid)</button>
+          <button data-act="panic">All notes off (panic)</button>
+        </div>
+      </div>
+      <button class="icon-btn" id="undoBtn" title="Undo (Ctrl+Z)">↶</button>
+      <button class="icon-btn" id="redoBtn" title="Redo (Ctrl+Y)">↷</button>
+      <button class="btn ghost" id="randomBtn" title="Randomise tuning, voicing and design">Random</button>
+      <div class="midi-box">
+        <span class="led" id="midiLed"></span>
+        <select id="midiIn" title="MIDI input"><option value="">MIDI: not available</option></select>
+        <select id="midiCh" title="MIDI channel"><option value="-1">Omni</option></select>
+      </div>
+      <button class="btn primary" id="powerBtn"><span class="pwr"></span><span id="powerLbl">Start audio</span></button>
+    </div>
+  </header>
+
+  <section class="display-row">
+    <div class="screen">
+      <div class="screen-head">
+        <div class="now">
+          <div class="now-note" id="nowNote">—</div>
+          <div class="now-meta" id="nowMeta">Play a key, or load a MIDI file</div>
+        </div>
+        <div class="stats">
+          <div class="stat"><span>Voices</span><b id="stVoices">0</b></div>
+          <div class="stat"><span>Resonances</span><b id="stRes">0</b></div>
+          <div class="stat"><span>DSP</span><b id="stCpu">0%</b></div>
+          <div class="stat"><span>Rate</span><b id="stRate">—</b></div>
+        </div>
+      </div>
+      <canvas id="spectrum"></canvas>
+      <div class="meters"><div class="meter"><i id="mL"></i></div><div class="meter"><i id="mR"></i></div></div>
+    </div>
+
+    <div class="pedals-card card">
+      <div class="card-title">Pedals</div>
+      <div class="pedals">
+        <div class="pedal" data-pedal="soft"><div class="pedal-shape"><i></i></div><span>Una corda</span><em>CC67</em></div>
+        <div class="pedal" data-pedal="harmonic"><div class="pedal-shape"><i></i></div><span>Harmonic</span><em>CC69</em></div>
+        <div class="pedal" data-pedal="sostenuto"><div class="pedal-shape"><i></i></div><span>Sostenuto</span><em>CC66</em></div>
+        <div class="pedal" data-pedal="sustain"><div class="pedal-shape"><i></i></div><span>Sustain</span><em>CC64</em></div>
+      </div>
+      <div class="hint">Click to latch · drag the sustain pedal down for half-pedal · <kbd>Space</kbd> = sustain</div>
+    </div>
+    <div class="card pad-card">
+      <div class="card-title">Sound pad <small>drag · outer ring pushes further · double-click centres</small></div>
+      <div id="pad"></div>
+    </div>
+  </section>
+
+  <main class="panels">
+    <section class="card" data-group="voicing">
+      <div class="card-title">Voicing</div>
+      <div class="sliders" data-sliders="voicing"></div>
+      <div class="sub-title">Spectrum profile <small>first 8 overtones · dB</small></div>
+      <div class="profile" id="profile"></div>
+    </section>
+
+    <section class="card" data-group="tuning">
+      <div class="card-title">Tuning</div>
+      <div class="field">
+        <label>Temperament</label>
+        <select id="temperament"></select>
+      </div>
+      <div class="sliders" data-sliders="tuning"></div>
+    </section>
+
+    <section class="card" data-group="design">
+      <div class="card-title">Design</div>
+      <div class="inst-actions">
+        <button class="mini" id="instGen" title="Create a random piano variation, or a synth sound (electric piano, bell, organ, pad, marimba, vibraphone)">Variation…</button>
+        <button class="mini" id="instAudio" title="Build an instrument from audio files (wav, mp3, flac): pick a file for each key on a piano bar, or let Resonance place them">From audio…</button>
+        <button class="mini" id="instImport" title="Import a resonance-instrument/1 JSON file">Import…</button>
+        <button class="mini" id="instManage">Manage</button>
+        <button class="mini" id="instHelp">Guide</button>
+        <input type="file" id="instFile" multiple aria-label="Import an instrument file" accept=".json,application/json" hidden>
+      </div>
+      <div class="sliders" data-sliders="design"></div>
+    </section>
+  </main>
+
+  <section class="panels lower">
+    <section class="card">
+      <div class="card-title">Equalizer <small>pre-processing · applied to the model's partials</small><button class="mini" id="eqReset">Reset</button></div>
+      <canvas class="curve" id="eqCurve"></canvas>
+      <div class="hint">Drag a point, or drag the line to add one · right-click a point to remove</div>
+    </section>
+    <section class="card">
+      <div class="card-title">Velocity<select class="mini-sel" id="velPreset"></select></div>
+      <canvas class="curve" id="velCurve"></canvas>
+      <div class="hint">Keyboard velocity in → hammer velocity out · drag the line to bend it</div>
+    </section>
+    <section class="card">
+      <div class="card-title">Output</div>
+      <div class="seg" id="mode"></div>
+      <div class="field"><label title="How many notes sound at once. Instrument = as the instrument is played (a flute one at a time, an organ in chords); Chords = always polyphonic; One note = a new key cuts the last">Notes at once</label><div class="seg small" id="voices"></div></div>
+      <div class="sliders" data-sliders="output"></div>
+    </section>
+    <section class="card">
+      <div class="card-title">Reverb<label class="toggle"><input type="checkbox" id="reverbOn"><span></span></label></div>
+      <div class="field two">
+        <select id="room"></select>
+        <div class="seg small" id="perspective"></div>
+      </div>
+      <div class="sliders" data-sliders="reverb"></div>
+      <div class="field"><label>Lid</label><div class="seg small" id="lid"></div></div>
+    </section>
+  </section>
+
+  <section class="player card">
+    <div class="player-left">
+      <button class="btn" id="loadMidi">Open MIDI…</button>
+      <input type="file" id="midiFile" aria-label="Open a MIDI file" accept=".mid,.midi" hidden>
+      <input type="file" id="presetFile" aria-label="Import a preset file" accept=".json" hidden>
+      <button class="round" id="playBtn" title="Play / pause" disabled>▶</button>
+      <button class="round" id="stopBtn" title="Stop" disabled>■</button>
+      <button class="round loop" id="loopBtn" title="Loop the MIDI file">⟳</button>
+      <div class="song">
+        <div class="song-name" id="songName">No file — drop a .mid anywhere</div>
+        <div class="song-bar"><input type="range" id="songPos" aria-label="Song position" min="0" max="1000" value="0" disabled><span id="songTime">0:00 / 0:00</span></div>
+      </div>
+      <label class="tempo">Tempo <input type="range" id="tempo" min="50" max="150" value="100"><b id="tempoVal">100%</b></label>
+    </div>
+    <div class="player-right">
+      <button class="btn" id="exportWav" disabled title="Offline render of the loaded MIDI file">Render WAV</button>
+      <button class="btn rec" id="recBtn" title="Record live output to WAV"><i></i><span>Record</span></button>
+      <details class="opts">
+        <summary>Options</summary>
+        <div class="opts-body">
+          <label class="chk"><input type="checkbox" id="damperNoise"> Damper noise (bass)</label>
+          <label class="chk"><input type="checkbox" id="fullSympa"> Full sustain resonance</label>
+          <label class="chk"><input type="checkbox" id="listenPC" checked> Listen to Program Change</label>
+          <div class="sliders" data-sliders="options"></div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section class="kb-wrap">
+    <div class="kb-bar">
+      <span>Computer keys <kbd>A</kbd>–<kbd>'</kbd> white · <kbd>W</kbd><kbd>E</kbd><kbd>T</kbd><kbd>Y</kbd><kbd>U</kbd><kbd>O</kbd><kbd>P</kbd> black · <kbd>Z</kbd>/<kbd>X</kbd> octave <b id="octLbl">C4</b> · <kbd>C</kbd>/<kbd>V</kbd> velocity <b id="velLbl">90</b></span>
+      <span>Click height = velocity · right-click a key to hold it silently (sympathetic resonance)</span>
+    </div>
+    <div class="keyboard" id="keyboard"></div>
+  </section>
+
+  <div class="tooltip" id="tooltip" hidden></div>
+  <div class="ctx" id="ctxMenu" hidden></div>
+  <div class="toast" id="toast"></div>
+  <div class="overlay" id="modal" hidden><div class="modal"><div class="modal-head"><b id="modalTitle"></b><button class="icon-btn" id="modalClose" title="Close">×</button></div><div class="modal-body" id="modalBody"></div></div></div>
+  <div class="overlay" id="renderOverlay" hidden><div class="ov-box"><div>Rendering…</div><div class="ov-bar"><i id="renderProg"></i></div><button class="btn ghost" id="renderCancel">Cancel</button></div></div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

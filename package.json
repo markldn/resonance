@@ -1,0 +1,15 @@
+{
+  "name": "resonance",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test/engine.test.mjs && node test/pad.test.mjs && node test/synth.test.mjs && node test/varpad.test.mjs && node test/synthdsp.test.mjs && node test/io.test.mjs && node test/importaudio.test.mjs && node test/pwa.test.mjs",
+    "start": "node serve.mjs",
+    "test:sliders": "node test/sliders.test.mjs",
+    "test:generators": "node test/generator.test.mjs",
+    "fidelity": "python3 tools/fidelity.py",
+    "test:ui": "node test/ui.test.mjs && node test/importui.test.mjs",
+    "test:all": "npm test && npm run test:sliders && npm run test:generators && npm run test:ui"
+  }
+}
